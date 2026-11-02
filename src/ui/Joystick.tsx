@@ -32,7 +32,13 @@ export function Joystick({ onMove }: { onMove: (v: Vec) => void }) {
       aria-hidden="true"
       onPointerDown={(e) => {
         if (grab.current || (e.pointerType === 'mouse' && e.button !== 0)) return;
-        e.currentTarget.setPointerCapture(e.pointerId);
+        // Capture can throw (InvalidStateError/NotFoundError) for pointers the browser no longer
+        // tracks; the stick still works without capture, so don't let it abort the grab.
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+          /* best effort */
+        }
         grab.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
         setView({ ox: e.clientX, oy: e.clientY, kx: 0, ky: 0 });
         onMove(ZERO);
