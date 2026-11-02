@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../config';
+import type { CardId } from './cards';
 import { LEVEL, parseLevel } from './level';
 import {
   createRun,
@@ -248,6 +249,16 @@ describe('guardian and detection', () => {
     expect(eventsOf(timed, 'detected').length).toBeGreaterThan(0);
     expect(state.status).toBe('caught');
   });
+
+  it('a chasing guardian in the same cell as a still player closes in and catches them', () => {
+    // Both in cell (5,1), 0.9 tiles apart: outside catchDist, but findPath returns [] for the same cell.
+    const s = createRun([], 3, TINY);
+    s.guardian = { ...s.guardian, x: 5.05, y: 1.5, mode: 'chase', path: [], repathTimer: 0, loseTimer: 0 };
+    s.player = { x: 5.95, y: 1.5 };
+    const { state, timed } = simulate(s, 3);
+    expect(eventsOf(timed, 'caught')).toHaveLength(1);
+    expect(state.status).toBe('caught');
+  });
 });
 
 describe('determinism and purity', () => {
@@ -277,5 +288,25 @@ describe('determinism and purity', () => {
 
   it('createRun rejects a deck over deckCap', () => {
     expect(() => createRun(Array(CONFIG.deckCap + 1).fill('muffle'), 1)).toThrow(RangeError);
+  });
+
+  it('createRun rejects unknown card ids', () => {
+    expect(() => createRun(['not_a_card' as CardId], 1)).toThrow();
+  });
+
+  it('createRun rejects Clatter in the player deck (it is a bane, never chosen)', () => {
+    expect(() => createRun(['clatter'], 1)).toThrow();
+  });
+
+  it('a non-finite dt is treated as zero time', () => {
+    const s = createRun([], 1, TINY);
+    const before = { x: s.player.x, y: s.player.y, elapsed: s.elapsed };
+    for (const dt of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+      const out = step(s, dt, RIGHT);
+      expect(out.player.x).toBe(before.x);
+      expect(out.player.y).toBe(before.y);
+      expect(out.elapsed).toBe(before.elapsed);
+      expect(Number.isFinite(out.guardian.x)).toBe(true);
+    }
   });
 });

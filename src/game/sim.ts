@@ -1,5 +1,5 @@
 import { CONFIG } from '../config';
-import { cardEffect, type CardId } from './cards';
+import { CARD_DEFS, cardEffect, isCardId, type CardId } from './cards';
 import { LEVEL, type Cell, type Level } from './level';
 import { distanceMap, findPath, walkable } from './path';
 import { createRng, nextInt, shuffle, type Rng } from './rng';
@@ -126,6 +126,10 @@ export function createRun(deckCardIds: readonly CardId[], seed: number, level: L
     throw new RangeError(`deck has ${deckCardIds.length} cards, cap is ${CONFIG.deckCap}`);
   }
   if (level.waypoints.length === 0) throw new Error('level needs at least one guardian waypoint');
+  for (const id of deckCardIds) {
+    if (!isCardId(id)) throw new Error(`unknown card id in deck: ${String(id)}`);
+    if (CARD_DEFS[id].type === 'bane') throw new Error(`${id} is a bane card and cannot be chosen for a deck`);
+  }
 
   const rng = createRng(seed);
 
@@ -191,7 +195,8 @@ export function step(prev: RunState, dtIn: number, input: Input): RunState {
   s.events = [];
   if (s.status !== 'playing') return s;
 
-  const dt = Math.min(Math.max(dtIn, 0), CONFIG.maxStepS);
+  // A NaN or infinite frame time would poison every timer and position; treat it as no time passing.
+  const dt = Number.isFinite(dtIn) ? Math.min(Math.max(dtIn, 0), CONFIG.maxStepS) : 0;
   s.elapsed += dt;
   decayCreakCooldowns(s, dt);
   movePlayer(s, input, dt);
@@ -508,6 +513,19 @@ function chase(s: RunState, dt: number): void {
   if (g.repathTimer <= 0 || g.path.length === 0) {
     g.path = findPath(level, cellOf(g.x, g.y), cellOf(player.x, player.y)) ?? [];
     g.repathTimer = CONFIG.repathS;
+  }
+  if (sameCell(cellOf(g.x, g.y), cellOf(player.x, player.y))) {
+    // findPath is [] within one cell, so close straight in. One tile has no walls inside it.
+    g.path = [];
+    const dx = player.x - g.x;
+    const dy = player.y - g.y;
+    const d = Math.hypot(dx, dy);
+    if (d > 0) {
+      const move = Math.min(CONFIG.guardChaseSpeed * dt, d);
+      g.x += (dx / d) * move;
+      g.y += (dy / d) * move;
+    }
+    return;
   }
   followPath(g, CONFIG.guardChaseSpeed, dt);
 }
