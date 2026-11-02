@@ -5,6 +5,7 @@ import {
   buyCard,
   defaultProfile,
   loadProfile,
+  sanitizeProfile,
   saveProfile,
   type KeyValueStore,
   type Profile,
@@ -66,6 +67,32 @@ describe('profile defaults', () => {
     const p: Profile = { coins: 17, embers: 4, collection: ['muffle', 'still_air'], lastDeck: ['muffle'] };
     expect(saveProfile(p, store)).toBe(true);
     expect(loadProfile(store)).toEqual(p);
+  });
+});
+
+describe('sanitising stored decks', () => {
+  it('never keeps Clatter in the collection or the last deck', () => {
+    const raw = JSON.stringify({ collection: ['muffle', 'clatter'], lastDeck: ['clatter', 'muffle'] });
+    const p = sanitizeProfile(JSON.parse(raw));
+    expect(p.collection).toEqual(['muffle']);
+    expect(p.lastDeck).toEqual(['muffle']);
+  });
+
+  it('keeps lastDeck a multiset subset of the collection', () => {
+    const raw = JSON.stringify({ collection: ['muffle', 'ward_stone'], lastDeck: ['muffle', 'muffle', 'ward_stone'] });
+    const p = sanitizeProfile(JSON.parse(raw));
+    expect(p.lastDeck).toEqual(['muffle', 'ward_stone']);
+  });
+
+  it('drops lastDeck cards that are not owned', () => {
+    const raw = JSON.stringify({ collection: ['muffle'], lastDeck: ['still_air', 'muffle'] });
+    expect(sanitizeProfile(JSON.parse(raw)).lastDeck).toEqual(['muffle']);
+  });
+
+  it('trims lastDeck to deckCap, keeping order', () => {
+    const many = Array(CONFIG.deckCap + 3).fill('muffle');
+    const raw = JSON.stringify({ collection: many, lastDeck: many });
+    expect(sanitizeProfile(JSON.parse(raw)).lastDeck).toEqual(Array(CONFIG.deckCap).fill('muffle'));
   });
 });
 

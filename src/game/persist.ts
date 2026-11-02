@@ -43,16 +43,33 @@ function cardList(value: unknown): CardId[] {
   return Array.isArray(value) ? value.filter(isCardId) : [];
 }
 
+/** Bane cards (Clatter) are shuffled in by the sim, so they are never collected or deck-built. */
+const isCollectable = (id: CardId): boolean => CARD_DEFS[id].type !== 'bane';
+
+/** Keeps the cards of `deck` that `owned` can cover, counting duplicates, in order. */
+function multisetSubset(deck: readonly CardId[], owned: readonly CardId[]): CardId[] {
+  const left = new Map<CardId, number>();
+  for (const id of owned) left.set(id, (left.get(id) ?? 0) + 1);
+  return deck.filter((id) => {
+    const n = left.get(id) ?? 0;
+    if (n <= 0) return false;
+    left.set(id, n - 1);
+    return true;
+  });
+}
+
 /** Coerces unknown stored data into a valid Profile, field by field. */
 export function sanitizeProfile(raw: unknown): Profile {
   const base = defaultProfile();
   if (typeof raw !== 'object' || raw === null) return base;
   const o = raw as Record<string, unknown>;
+  const collection = Array.isArray(o.collection) ? cardList(o.collection).filter(isCollectable) : base.collection;
+  const lastDeck = multisetSubset(cardList(o.lastDeck).filter(isCollectable), collection).slice(0, CONFIG.deckCap);
   return {
     coins: nonNegativeInt(o.coins, base.coins),
     embers: nonNegativeInt(o.embers, base.embers),
-    collection: Array.isArray(o.collection) ? cardList(o.collection) : base.collection,
-    lastDeck: cardList(o.lastDeck),
+    collection,
+    lastDeck,
   };
 }
 
