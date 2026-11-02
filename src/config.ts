@@ -145,7 +145,7 @@ export const CONFIG = {
   /** Tiles visible across the screen width and height; the zoom fits both. */
   cameraTilesWide: 9.5,
   cameraTilesTall: 12,
-  /** Guardian half-size, tiles. */
+  /** Guardian square side length, tiles. */
   guardianSize: 0.7,
   /** Artifact glow radius, tiles. */
   artifactSize: 0.9,
