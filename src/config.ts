@@ -111,9 +111,52 @@ export const CONFIG = {
     'greedy_grab',
   ] as CardId[],
 
-  // --- Sound (consumed in phase 2) ---
+  // --- Sound ---
   /** Heartbeat interval at zero noise, s. */
   heartbeatSlowS: 1.4,
   /** Heartbeat interval at max noise, s. */
   heartbeatFastS: 0.45,
+  /** Gap between the two thumps of one heartbeat, s. */
+  heartbeatDubGapS: 0.18,
+  /** Master level for sound effects (0..1). */
+  sfxVolume: 0.5,
+  /** Heartbeat thump level (0..1, before master). */
+  heartbeatVolume: 0.6,
+
+  // --- Simulation loop (UI) ---
+  /** Fixed timestep the sim advances by, s. */
+  simStepS: 1 / 60,
+  /** Frame time fed to the accumulator is clamped to this, s (covers tab stalls). */
+  maxFrameS: 0.25,
+  /** Upper bound on sim steps per rendered frame (spiral-of-death guard). */
+  maxStepsPerFrame: 8,
+  /** How often the HUD snapshot is pushed into React state, s. */
+  hudRefreshS: 0.1,
+  /** Pause between the run ending and the post-run screen, s. */
+  runEndDelayS: 1,
+  /** How long the card-drawn toast stays on screen, s. */
+  toastS: 2.5,
+  /** Length of the hazard / detected screen flash, s. */
+  flashS: 0.6,
+  /** How long give-up stays armed waiting for a second tap, s. */
+  giveUpArmS: 3,
+
+  // --- Camera and scene ---
+  /** Tiles visible across the screen width and height; the zoom fits both. */
+  cameraTilesWide: 9.5,
+  cameraTilesTall: 12,
+  /** Guardian half-size, tiles. */
+  guardianSize: 0.7,
+  /** Artifact glow radius, tiles. */
+  artifactSize: 0.9,
+  /** Exit ring outer radius, tiles. */
+  exitRadius: 0.5,
+  /** Tile quad size as a fraction of a cell, so grid lines show between tiles. */
+  tileInset: 0.94,
+
+  // --- Input ---
+  /** Joystick deadzone as a fraction of its travel radius. */
+  joystickDeadzone: 0.15,
+  /** Joystick travel radius, css px. */
+  joystickRadiusPx: 56,
 };
